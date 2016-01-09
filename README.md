@@ -1,4 +1,2 @@
 # ecoinformatica_2015_2016
-
-probando
-kjkjkkjk
+A ver si ahora furula
