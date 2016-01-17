@@ -1,6 +1,6 @@
 ## Ecoinformática. Curso 2015-2016
 
-Bienvenidos a esta nueva edición de la asignatura de ecoinformática en el master de ["Conservación, gestión y restauración de la biodiversidad"](http://masteres.ugr.es/biodiversidad/) impartido por la [Universidad de Granada](http://www.ugr.es).
+      Bienvenidos a esta nueva edición de la asignatura de ecoinformática en el master de ["Conservación, gestión y restauración de la biodiversidad"](http://masteres.ugr.es/biodiversidad/) impartido por la [Universidad de Granada](http://www.ugr.es).
 
 Este repositorio de github será nuestro lugar de encuentro digital. En él pondremos todo el material que vayamos utilizando en las clases. Los alumnos también usarán esta plataforma para subir los resultados de los "retos" propuestos por el profesor. 
 
