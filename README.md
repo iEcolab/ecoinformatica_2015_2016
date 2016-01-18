@@ -33,4 +33,4 @@ La distribución de los retos es la siguiente:
 
 Usaremos esta plataforma para entregar los ejercicios. En la sesión 2 se explica cómo se usa y en qué consiste. Pero en resumen se trata de un repositorio de código que nos permitirá hacer un seguimiento del trabajo realizado durante la asignatura. los alumnos harán un "clon" de este repositorio y guardarán los retos dentro de las carpetas correspondientes. Dentro de cada carpeta (Ver arriba y en los enlaces de cada sesión) hay otra carpeta con los retos. Sigue las instrucciones que aparecen en cada carpeta para publicar tus resultados.
 
-
+** FECHA DEFINITIVA E IMPRORROGABLE DE LOS RETOS: 14 DE FEBRERO A LAS 00:00**
