@@ -10,6 +10,5 @@ A modo de resumen, ahí va una cronología de lo que hemos hecho:
 + Todo lo anterior está bien y nos permite documentar lo que hacemos, pero nos falta la capacidad de controlar las versiones de nuestro código (y datos).
 + Para resolver esto se inventó [Git](https://git-scm.com/), que es un sistema de control de versiones digital. Lo podemos instalar en nuestro ordenador y esto nos permite realizar un seguimiento de los cambios realizados en los documentos de trabajo.
 + Es posible utilizar Git con la consola o bien a través de Rstudio (este chico sirve para todo...). Además con Rstudio podemos conectar Git con repositorios de código de la red, como por ejemplo [Github](https://github.com/). Esto nos permite además compartir nuestro código con otros.
-
-
++ Por último, hemos creado para vosotros una cuenta en un laboratorio virtual. Se trata de un acceso a Rstudio (con todos los componentes instalados) a través de la web. En ese laboratorio podéis ver sincronizar el repositorio de Github de la asignatura y ejecutar la mayor parte de los retos. [Esta](http://vlab.iecolab.es:8787/auth-sign-in) es la dirección de acceso.
 
