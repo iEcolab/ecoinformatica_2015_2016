@@ -18,4 +18,4 @@ Deberás de hacer lo siguiente:
 + Crea la estructura de la base de datos en Microsoft Access. Debes de crear las tablas y las relaciones.
 + Rellena cada tabla de la base de datos con unos 5 registros.
 + Crea formularios para cargar datos. Esto último no es imprescindible (a no ser que quieras optar a la matrícula de honor).
-+ Y ya...
++ Y ya
