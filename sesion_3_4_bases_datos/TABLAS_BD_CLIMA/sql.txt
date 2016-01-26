@@ -1,0 +1,140 @@
+--Creamos la base de datos
+
+CREATE DATABASE clima
+  WITH OWNER = ecoinformatica
+       ENCODING = 'UTF8'
+       LC_COLLATE = 'es_ES.UTF-8'
+       LC_CTYPE = 'es_ES.UTF-8'
+       CONNECTION LIMIT = -1;
+
+
+-- Creamos la tabla "estaciones"
+
+CREATE TABLE estaciones
+(
+  estacion_id integer NOT NULL,
+  nombre character varying NOT NULL,
+  x_ed50 double precision NOT NULL,
+  y_ed50 double precision NOT NULL,
+  prov_id integer NOT NULL,
+  CONSTRAINT estacion_id PRIMARY KEY (estacion_id)
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE estaciones OWNER TO ecoinformatica;
+
+-- Copiamos los datos del archivo "estaciones.csv" a la tabla "estaciones"
+
+COPY estaciones FROM '/home/ecoinformatica/clima/estaciones.csv'
+WITH 
+DELIMITER ';'
+CSV HEADER
+;
+
+--Creamos la tabla "observaciones", y también la relación con "estaciones"
+
+CREATE TABLE observaciones
+(
+  obs_id integer NOT NULL,
+  anio integer NOT NULL,
+  mes integer NOT NULL,
+  valor double precision NOT NULL,
+  variable character varying NOT NULL,
+  estacion_id integer NOT NULL,
+  CONSTRAINT obs_id PRIMARY KEY (obs_id),
+  CONSTRAINT obs_x_estacion FOREIGN KEY (estacion_id)
+      REFERENCES estaciones (estacion_id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE observaciones OWNER TO ecoinformatica;
+
+-- Copiamos los datos del archivo "observaciones.csv" a la tabla "observaciones"
+
+COPY observaciones FROM '/home/ecoinformatica/clima/observaciones.csv'
+WITH 
+DELIMITER ';'
+CSV HEADER
+;
+
+-- Primera consulta de prueba con SQL.
+-- Lista las coordenadas y el nombre de las estaciones situadas en Almería
+
+SELECT 
+  estaciones.nombre, 
+  estaciones.x_ed50, 
+  estaciones.y_ed50
+FROM 
+  estaciones
+WHERE 
+  estaciones.prov_id = 4;
+
+-- Segunda consulta: muestra los valores promedios de todas las variables para cada estación y en cada año.
+
+SELECT
+observaciones.estacion_id,
+observaciones.anio,
+observaciones.variable,
+Avg(observaciones.valor) 
+
+AS promedio
+FROM observaciones
+GROUP BY observaciones.estacion_id, observaciones.anio, observaciones.variable
+ORDER BY observaciones.estacion_id ASC, observaciones.variable ASC, observaciones.anio ASC;
+
+-- Tercera consulta: muestra los valores promedio de toda la serie temporal de todas las variables, por estación
+
+SELECT
+observaciones.estacion_id,
+observaciones.variable,
+Avg(observaciones.valor) 
+
+AS promedio
+FROM observaciones
+GROUP BY observaciones.estacion_id, observaciones.variable
+ORDER BY observaciones.estacion_id ASC, observaciones.variable ASC;
+
+-- Cuarta consulta: ¿en qué estación de Almería llovió más?
+
+SELECT 
+  estaciones.estacion_id,
+  observaciones.anio, 
+  observaciones.variable, 
+  estaciones.prov_id,
+  Sum(observaciones.valor) AS prec_total_x_anio
+FROM 
+  public.estaciones, 
+  public.observaciones
+WHERE 
+  estaciones.estacion_id = observaciones.estacion_id AND
+  observaciones.variable = 'precip' AND
+  estaciones.prov_id=4
+GROUP BY 
+  estaciones.estacion_id,
+  estaciones.prov_id,
+  observaciones.anio,
+  observaciones.variable
+ORDER BY
+  prec_total_x_anio DESC;
+
+
+-- Importamos un shapefile con las estaciones
+
+---- Primero activamos el lenguaje plpgsql
+
+sudo su ecoinformatica
+
+--- pwd= ec0inf0
+
+createlang plpgsql clima
+psql -d clima -f /usr/share/postgresql/8.4/contrib/postgis-1.5/postgis.sql
+psql -d clima -f /usr/share/postgresql/8.4/contrib/postgis-1.5/spatial_ref_sys.sql
+
+---- Ahora importamos el shapefile
+
+shp2pgsql -c /home/ecoinformatica/clima/estaciones_aemet.shp estaciones_aemet > /home/ecoinformatica/importashape.sql
+psql -d clima -f /home/ecoinformatica/importashape.sql
+
