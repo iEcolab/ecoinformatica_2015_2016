@@ -1,4 +1,4 @@
-## Reproducibilidad en ciencia
+## Reproducibilidad en ciencia  
 
 En [esta](http://ajperezluque.com/repro_ecoinf_2014_2015/#1) presentación de [Antonio J. Pérez-Luque](http://ajperezluque.com/) podrás ver buena parte de los contenidos que hemos visto durante la sesión en clase.
 
