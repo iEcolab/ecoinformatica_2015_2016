@@ -178,4 +178,4 @@ writeRaster(p, "modelo_Q_pyrenaica.asc")
 # ¿Está bien modelado? A pensar 
 points(presencia_geo, pch=19)
 
-
+n
