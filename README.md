@@ -1,4 +1,4 @@
-## Ecoinformática. Curso 2015-2016
+## Ecoinformática. Curso 2015-2016...
 
 Bienvenidos a esta nueva edición de la asignatura de ecoinformática en el master de ["Conservación, gestión y restauración de la biodiversidad"](http://masteres.ugr.es/biodiversidad/) impartido por la [Universidad de Granada](http://www.ugr.es).
 
