@@ -3,9 +3,9 @@
 #ESTABLECE EL DIRECTORIO DE TRABAJO
 ###################################
 #DIRECTORIO DE TRABAJO
-dir_trabajo<-'/Users/fjbonet/ownCloud/4_docencia/master_ugr_cons_bio/2015_2016/git/ecoinformatica_2015_2016/sesion_6_agentes_modelos_distribucion/modelos_distribucion_especies/ejemplo'
+dir_trabajo<-"D:/ECOINFO/sesion_6_simulaciones/modelos_distribucion_especies/ejemplo/"
 #ESTABLECE EL DIRECTORIO DE TRABAJO
-setwd(dir.trabajo)
+setwd(dir_trabajo)
 
 getwd()
 
@@ -103,16 +103,16 @@ names(variables_tabla2)<-c("PA","topo_posic","sol_rad_sum","huella_humana","PV",
 #importa la tabla
 presencia_utm<-read.table("presencia/presencia_q_pyrenaica.csv",header=T, sep=';')
 
-## Convertir coordenadas UTM a Geográficas
+## Convertir coordenadas UTM a Geográficas, creando objeto espacial que resulte de la combinación del campo x y el campo y, la funcion cbind consiste en fusionar columnas
 
 presencia_utm_f <- SpatialPoints(cbind(presencia_utm$x,presencia_utm$y), 
                              proj4string=CRS("+proj=utm +zone=30"))
 
-# Convierto objeto a longitud+latitud 
+# Convierto objeto espacial con UTM asociada dandole una nueva proyeccion con CRS, en una tabla o dataframe, que se llama presencia_geo
 presencia_geo <- as.data.frame(spTransform(presencia_utm_f, CRS("+proj=longlat")))
 
 
-#IMPORTA REGISTROS DE AUSENCIA
+#IMPORTA REGISTROS DE AUSENCIA: lo mismo que el punto anterior pero con ausencia
 #-----------------------------
 
 ausencia_utm<-read.table("presencia/ausencia_q_pyrenaica.csv",header=T, sep=';')
@@ -128,6 +128,7 @@ ausencia_geo <- as.data.frame(spTransform(ausencia_utm_f, CRS("+proj=longlat")))
 
 
 #EXTRAE VALORES DE LAS VARIABLES EN LOS PUNTOS DE PRESENCIA A UNA TABLA
+#Extracción de los valores de presencia pero solo en los puntos donde hay presencia
 help(extract)
 presencia_variables<-data.frame(extract(variables, presencia_geo))
 str(presencia_variables)
@@ -177,4 +178,4 @@ writeRaster(p, "modelo_Q_pyrenaica.asc")
 # ¿Está bien modelado? A pensar 
 points(presencia_geo, pch=19)
 
-
+n
