@@ -1,0 +1,205 @@
+
+
+###################################
+#ESTABLECE EL DIRECTORIO DE TRABAJO
+###################################
+#DIRECTORIO DE TRABAJO
+dir_trabajo<-'C:/Ecoinformatica/ecoinformatica_2015_2016/sesion_7_reto_final'
+#ESTABLECE EL DIRECTORIO DE TRABAJO
+setwd(dir_trabajo)
+
+getwd()
+
+
+################################
+#INSTALACION Y CARGA DE PAQUETES
+################################
+#NOTA: SOLO ES NECESARIO INSTALARLOS UNA VEZ. DESACTIVA ESTAS LÍNEAS PARA LA PRÓXIMA SESIÓN
+#INSTALA PAQUETE DISMO Y TODAS SUS DEPENDENCIAS (EJECUTAR UNA SOLA VEZ)
+install.packages("dismo", dep=TRUE) #SDMs con R
+install.packages("plotmo", dep=TRUE) #curvas de respuesta
+install.packages("randomForest", dep=TRUE) #random forest
+install.packages("party", dep=TRUE) #árboles de inferencia condicional
+install.packages("HH", dep=TRUE) #VIF
+install.packages("tree", dep=TRUE) #árboles de regresión
+
+#CARGA LAS LIBRERIAS NECESARIAS (EJECUTAR SIEMPRE QUE TRABAJES CON EL SCRIPT)
+library(dismo)
+library(plotmo)
+library(randomForest)
+library(party)
+library(HH)
+library(tree)
+library(rgdal)
+
+
+##################################
+#IMPORTA LAS VARIABLES PREDICTORAS
+##################################
+#LISTADO DE VARIABLES
+lista_variables_pres <- list.files(path="variables/presente",pattern='*.asc', full.names=TRUE)
+lista_variables_2020 <- list.files(path="variables/futuro_A2/2020",pattern='*.asc', full.names=TRUE)
+lista_variables_2030 <- list.files(path="variables/futuro_A2/2030",pattern='*.asc', full.names=TRUE)
+lista_variables_2040 <- list.files(path="variables/futuro_A2/2040",pattern='*.asc', full.names=TRUE)
+lista_variables_2050 <- list.files(path="variables/futuro_A2/2050",pattern='*.asc', full.names=TRUE)
+
+
+#stack Y brick PREPARAN LAS VARIABLES EN UN UNICO OBJETO ESPACIAL
+
+variables_pres <- brick(stack(lista_variables_pres))
+variables_2020 <- brick(stack(lista_variables_2020))
+variables_2030 <- brick(stack(lista_variables_2030))
+variables_2040 <- brick(stack(lista_variables_2040))
+variables_2050 <- brick(stack(lista_variables_2050))
+
+#Creacion de la mascara
+
+r<-raster("mascara.asc")
+
+variables_pres_sn<-crop(variables_pres, r)
+plot(variables_pres_sn)
+
+variables_2020_sn<-crop(variables_2020,r)
+variables_2030_sn<-crop(variables_2030,r)
+variables_2040_sn<-crop(variables_2040,r)
+variables_2050_sn<-crop(variables_2050,r)
+
+plot(variables_2020_sn)
+plot(variables_2030_sn)
+plot(variables_2040_sn)
+plot(variables_2050_sn)
+
+
+
+#####################################################
+#ANÁLISIS DE CORRELACIÓN DE LAS VARIABLES PREDICTORAS
+#####################################################
+
+#TRANSFORMA LOS MAPAS EN UNA TABLA
+variables_pres_tabla<-as.data.frame(variables_pres_sn)
+
+#ELIMINA LOS VALORES NULOS
+variables_pres_tabla<-na.omit(variables_pres_tabla)
+
+#MATRIZ DE CORRELACIÓN
+
+variables_pres_correlacion<-cor(variables_pres_tabla)
+
+#MATRIZ DE DISTANCIAS ('ABS' = VALOR ABSOLUTO, PARA ELIMINAR CORRELACIONES NEGATIVAS)
+
+variables_pres_dist<-abs(as.dist(variables_pres_correlacion))
+
+#CLUSTER DE VARIABLES SEGÚN LA DISTANCIA (MENOR DISTANCIA = MAYOR CORRELACIÓN)
+help(hclust)
+variables_pres_cluster<-hclust(1-variables_pres_dist)
+
+#GRAFICO DEL CLUSTER DE CORRELACIONES 
+plot(variables_pres_cluster)
+
+
+#SELECCIONAMOS LAS VARIABLES CON LAS QUE QUEREMOS TRABAJAR
+variables_pres_tabla2<-data.frame(variables_pres_tabla$PA,variables_pres_tabla$topo_posic,variables_pres_tabla$sol_rad_sum,variables_pres_tabla$huella_humana,variables_pres_tabla$PV,variables_pres_tabla$topo_pend)
+
+names(variables_pres_tabla2)<-c("PA","topo_posic","sol_rad_sum","huella_humana","PV","topo_pend")
+
+
+
+##########################################################
+#PREPARACION DE LAS TABLAS DE DATOS PARA HACER LOS MODELOS
+##########################################################
+#UNA TABLA DE DATOS REQUIERE:
+#una columna llamada presencia, con 1 en las presencias y 0 en las ausencias
+#tantas columnas como variables predictivas se van a usar, y en cada registro, el valor de la variable para cada uno de los puntos de presencia
+#las columnas con las coordenadas (no son necesarias para ajustar los modelos, pero sí lo son para evaluarlos)
+
+
+
+#IMPORTA REGISTROS DE PRESENCIA
+#------------------------------
+#importa la tabla
+presencia_utm<-read.table("enebral/presencia_enebral.csv",header=T, sep=';')
+
+## Convertir coordenadas UTM a Geográficas
+
+presencia_utm_f <- SpatialPoints(cbind(presencia_utm$UTM_X_GPS,presencia_utm$UTM_Y_GPS), 
+                             proj4string=CRS("+proj=utm +zone=30"))
+
+# Convierto objeto a longitud+latitud 
+presencia_geo <- as.data.frame(spTransform(presencia_utm_f, CRS("+proj=longlat")))
+
+
+#IMPORTA REGISTROS DE AUSENCIA
+#-----------------------------
+
+ausencia_utm<-read.table("enebral/ausencia_enebral.txt",header=T, sep=';')
+
+## Convertir coordenadas UTM a Geográficas
+
+ausencia_utm_f <- SpatialPoints(cbind(ausencia_utm$UTM_X_GPS,ausencia_utm$UTM_Y_GPS), 
+                              proj4string=CRS("+proj=utm +zone=30"))
+
+# Convierto objeto a longitud+latitud 
+ausencia_geo <- as.data.frame(spTransform(ausencia_utm_f, CRS("+proj=longlat")))
+
+
+
+#EXTRAE VALORES DE LAS VARIABLES EN LOS PUNTOS DE PRESENCIA A UNA TABLA
+
+presencia_variables_pres<-data.frame(extract(variables_pres_sn, presencia_geo))
+str(presencia_variables)
+presencia_variables_pres$respuesta <- rep(1, nrow(presencia_variables_pres))
+
+#EXTRAE LOS VALORES DE LAS VARIABLES EN LAS AUSENCIAS
+ausencia_variables_pres<-data.frame(extract(variables_pres_sn, ausencia_geo))
+ausencia_variables_pres$respuesta <- rep(0, nrow(ausencia_variables_pres))
+
+
+#UNE LA RESPUESTA, LAS VARIABLES Y LAS COORDENADAS EN UN SOLO DATAFRAME
+tabla_completa<-rbind(ausencia_variables_pres, presencia_variables_pres)
+
+
+
+#QUITAMOS LOS REGISTROS CON VALORES NULOS (QUE NO TIENEN DATOS PARA TODAS LAS VARIABLES)
+tabla_completa<-na.omit(tabla_completa)
+
+#VEMOS EL RESULTADO
+
+head(tabla_completa)
+
+
+# Computamos una regresión logística con todos nuestras variables y con los datos de presencia/ausencia
+
+m1<-glm(respuesta ~.,data=tabla_completa)
+summary(m1)
+
+# seleccionamos las variables que son significativas. Los "estimate" nos dan idea de la ganancia de cada variable.
+tabla_modelo <-tabla_completa[,c('huella_humana','PA','PV','topo_posic','respuesta')]
+
+m2<-glm(respuesta~., data=tabla_modelo)
+summary(m2)
+
+# valores predichos. Ya tenemos nuestro modelo matemático, ahora vamos a aplicarlo a las variables (mapas) que teníamos al principio.
+
+
+p<-predict(variables_pres_sn, m2)
+plot(p)
+p_2020<-predict(variables_2020_sn, m2)
+plot(p_2020)
+p_2030<-predict(variables_2030_sn, m2)
+plot(p_2030)
+p_2040<-predict(variables_2040_sn, m2)
+plot(p_2040)
+p_2050<-predict(variables_2050_sn, m2)
+plot(p_2050)
+
+
+# Generar mapa en formato .asc
+p_raster<-raster(p)
+help(writeRaster)
+writeRaster(p, "enebral_presente.asc")
+            
+
+
+
+
+
