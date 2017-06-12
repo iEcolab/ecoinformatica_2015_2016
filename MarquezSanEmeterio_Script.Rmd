@@ -1,0 +1,182 @@
+# Load packages
+install.packages(c('Kendall','wq'))
+library('Kendall')  # For Kendall analysis
+library('wq')       # For Kendall and Theil-Sen Slope analysis 
+library('ggplot2')  # For advanced plots 
+library('reshape2') # Manipule data
+library('zoo')      # Temporal series 
+install.packages('grid')
+
+#DIRECTORIO DE TRABAJO
+dir_trabajo<-'/Users/Layla/Desktop/Reto_final/sesion_7_reto_final/sesion_7_reto_final'
+
+#ESTABLECE EL DIRECTORIO DE TRABAJO
+setwd(dir_trabajo)
+getwd()
+
+# Read data
+nieve_aniohidro <- read.csv("C:/Users/Layla/Desktop/Reto_final/nieve_aniohidro.csv")
+
+# Explore data
+str(nieve_aniohidro)
+head(nieve_aniohidro)
+View(nieve_aniohidro)
+
+# Manipule data 
+consulta_nieve <- dcast(nieve_aniohidro, anio_hidrologico~malla_punto_id, value.var = 'CuentaDesnow')   
+View(consulta_nieve)
+
+# Convierte los valores nulos en cero
+consulta_nieve[is.na(consulta_nieve)]<-0
+summary(consulta_nieve)
+
+# Convert data into zoo object 
+mizoo <- zoo(consulta_nieve[-1], consulta_nieve[,1])
+
+# TABLA GRAFICA PARA CADA MES 
+str(mizoo)
+
+### Run the Theil-Sen and Trend analysis
+theil <- mannKen(as.ts(mizoo)) 
+theil
+View(theil)
+
+# Para exportar la tabla
+write.table(theil, file = "theil.csv")
+
+#######################################
+MODELOS DE REGRESION CON LAS VARIABLES AMBIENTALES PARA PRESENTE Y FUTURO
+
+#INSTALACION Y CARGA DE PAQUETES
+install.packages("dismo", dep=TRUE) #SDMs con R
+install.packages("plotmo", dep=TRUE) #curvas de respuesta
+install.packages("randomForest", dep=TRUE) #random forest
+install.packages("party", dep=TRUE) #Ã¡rboles de inferencia condicional
+install.packages("HH", dep=TRUE) #VIF
+install.packages("tree", dep=TRUE) #Ã¡rboles de regresiÃ³n
+
+#CARGA LAS LIBRERIAS NECESARIAS 
+library(dismo)
+library(plotmo)
+library(randomForest)
+library(party)
+library(HH)
+library(tree)
+library(rgdal)
+
+nieve_aniohidro <- read.csv ("C:/Users/Layla/Desktop/Reto_final/nieve_aniohidro.csv")
+
+#IMPORTA LAS VARIABLES PREDICTORAS
+
+#LISTADO DE VARIABLES
+lista_variables <- list.files(path="variables/presente/",pattern='*.asc', full.names=TRUE)
+Para futuro, path="variables/futuro_A2/20XX/"
+
+# stack Y brick 
+variables <- brick(stack(lista_variables))
+
+r<-raster("Mascara.asc")
+variables2<-crop(variables, r)
+plot(variables2)
+RESULTADO: MAPA DE SIERRA NEVADA
+
+r <- raster(nrow=3, ncol=3)
+r <- 1:ncell(r)
+s <- raster(nrow=10, ncol=10)
+
+#DIBUJA LAS VARIABLES PREDICTORAS
+png("resultados/variables.png", width=2000, height=2000, pointsize=20)
+PARA FUTURO: variables/futuro_A2.png
+plot(variables)
+RESULTADO: MAPA DE ANDALUCIA
+dev.off()
+
+#####################################################
+#ANÁLISIS DE CORRELACIÓN DE LAS VARIABLES PREDICTORAS
+#TRANSFORMA LOS MAPAS EN UNA TABLA
+variables_tabla<-as.data.frame(variables)
+
+#ELIMINA LOS VALORES NULOS
+variables_tabla<-na.omit(variables_tabla)
+
+#MATRIZ DE CORRELACIÓN
+variables_correlacion<-cor(variables_tabla)
+
+#MATRIZ DE DISTANCIAS ('ABS' = VALOR ABSOLUTO, PARA ELIMINAR CORRELACIONES NEGATIVAS)
+variables_dist<-abs(as.dist(variables_correlacion))
+
+#CLUSTER DE VARIABLES SEGÚN LA DISTANCIA (MENOR DISTANCIA = MAYOR CORRELACIÓN): DENDROGRAMA
+variables_cluster<-hclust(1-variables_dist)
+
+#GRAFICO DEL CLUSTER DE CORRELACIONES 
+plot(variables_cluster)
+
+#GRÁFICO DEL CLUSTER DE CORRELACIONES EXPORTADO A PDF
+pdf("correlacion.pdf", width=8, height=11.5, pointsize=20)
+plot(variables_cluster)
+dev.off()
+
+#SELECCION DE VARIABLES
+variables_tabla2<-data.frame(variables_tabla$PA,variables_tabla$topo_posic,variables_tabla$sol_rad_sum,variables_tabla$huella_humana,variables_tabla$PV,variables_tabla$topo_pend)
+
+##########################################################
+#PREPARACION DE LAS TABLAS DE DATOS PARA HACER LOS MODELOS
+##########################################################
+
+#IMPORTA REGISTROS DE PRESENCIA
+#importa la tabla
+presencia_utm<-read.table("enebral/presencia_enebral.csv",header=T, sep=';')
+
+## COORDENADAS UTM A GEOGRAFICAS
+presencia_utm_f <- SpatialPoints(cbind(presencia_utm$UTM_X_GPS,presencia_utm$UTM_Y_GPS), proj4string=CRS("+proj=utm +zone=30"))
+
+# Convierto objeto a longitud+latitud 
+presencia_geo <- as.data.frame(spTransform(presencia_utm_f, CRS("+proj=longlat")))
+
+#IMPORTA REGISTROS DE AUSENCIA
+ausencia_utm<-read.table("enebral/ausencia_enebral.txt",header=T, sep=';')
+
+## COORDENADAS UTM A GEOGRAFICAS
+ausencia_utm_f <- SpatialPoints(cbind(ausencia_utm$UTM_X_GPS,ausencia_utm$UTM_Y_GPS),proj4string=CRS("+proj=utm +zone=30"))
+
+# Convierto objeto a longitud+latitud 
+ausencia_geo <- as.data.frame(spTransform(ausencia_utm_f, CRS("+proj=longlat")))
+
+#EXTRAE VALORES DE LAS VARIABLES EN LOS PUNTOS DE PRESENCIA A UNA TABLA
+presencia_variables<-data.frame(extract(variables, presencia_geo))
+str(presencia_variables)
+presencia_variables$respuesta <- rep(1, nrow(presencia_variables))
+
+#EXTRAE LOS VALORES DE LAS VARIABLES EN LAS AUSENCIAS
+ausencia_variables<-data.frame(extract(variables, ausencia_geo))
+ausencia_variables$respuesta <- rep(0, nrow(ausencia_variables))
+
+#UNE LA RESPUESTA, LAS VARIABLES Y LAS COORDENADAS EN UN SOLO DATAFRAME
+tabla_completa<-rbind(ausencia_variables, presencia_variables)
+
+#ELIMINAR VALORES NULOS
+tabla_completa<-na.omit(tabla_completa)
+
+#VEMOS EL RESULTADO
+head(tabla_completa)
+
+# REGRESION LOGISTICA CON VARIABLES Y AUSENCIA/PRESENCIA ENEBRAL
+m1<-glm(respuesta ~.,data=tabla_completa)
+summary(m1)
+
+# SELECCION DE VARIABLES SIGNIFICATIVAS Y NUEVO MODELO
+tabla_modelo <-tabla_completa[,c('huella_humana','PA','PV','TMNI','TMNV','TMXI','TMXV','respuesta')]
+tabla_modelo <-tabla_completa[,c('huella_humana')]
+m2<-glm(respuesta~., data=tabla_modelo)
+summary(m2)
+
+# GENERAR MAPAS CON VARIABLES PREDICHAS
+p<-predict(variables, m2)
+plot(p)
+
+# CONVERTIR MAPA A FORMATO RASTER
+p_raster<-raster(p)
+writeRaster(p, "modelo_enebral.asc")
+writeRaster(p, "modelo_enebral_futuro20XX.asc")
+
+#################
